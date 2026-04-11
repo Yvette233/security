@@ -152,6 +152,7 @@
             <version>12.2.0.1</version>
         </dependency>
 
+
         <!--***************************对数据库密码加密***************************-->
         <!-- https://mvnrepository.com/artifact/com.github.ulisesbocchio/jasypt-spring-boot-starter -->
         <dependency>

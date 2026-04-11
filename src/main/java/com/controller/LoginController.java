@@ -81,13 +81,4 @@ public class LoginController {
         return Result.ok("切换成功");
     }
 
-//    /********************************************腾讯MI登录****************************************************/
-//
-//    @PostMapping("/generateUserSig")
-//    @ResponseBody
-//    public Result generateUserSig(@RequestParam("userId") final String userId) {
-//        return Result.ok(generateUserSig.generateUserSig(userId));
-//    }
-
-
 }
