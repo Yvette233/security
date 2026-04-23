@@ -43,6 +43,13 @@ public class TokenFilter extends OncePerRequestFilter {
     //由于我们采用jwt生成token，因此没法中途更改token的有效期，只能将其放到Redis中，通过更改Redis中key的生存时间来控制token的有效期
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        // 在 TokenFilter 的 doFilterInternal 方法开头添加
+        String requestURI = request.getRequestURI();
+        // 如果是登录相关的请求，直接放行，不检查 Token
+        if (requestURI.contains("/login/")) {
+            chain.doFilter(request, response);
+            return;
+        }
         //获取header中的token
         log.info(request.getHeaders(AUTHORIZATION));
         String token = StringUtils.isNotEmpty(request.getHeader(AUTHORIZATION)) ? request.getHeader(AUTHORIZATION) : "";

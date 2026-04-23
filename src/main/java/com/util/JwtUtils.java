@@ -3,6 +3,7 @@ package com.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import java.util.function.Function;
  * create time：2021/11/22-15:39
  * creator：fangpengcheng
  */
+@Service
 public class JwtUtils {
 
     private static long TOKEN_EXPIRATION = 24 * 60 * 60 * 1000;

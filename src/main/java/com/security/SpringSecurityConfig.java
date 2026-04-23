@@ -9,6 +9,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -35,7 +36,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Configuration
 @EnableWebSecurity // 开启 springsecurity 认证配置
 @EnableGlobalMethodSecurity(prePostEnabled = true)//启用方法安全设置
-//@EnableGlobalMethodSecurity(prePostEnabled = false)//启用方法安全设置
+@Order(2)
 public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
     public final static Log log = LogFactory.getLog(SpringSecurityConfig.class);
@@ -153,7 +154,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity webSecurity) throws Exception {
         //不拦截静态资源,
         webSecurity.ignoring().antMatchers("/url/**")//window.open的url暂时权限放开
-                .antMatchers("/login/**")//访问： 无需登录认证权限
+                .antMatchers("/login/**", "/workflow/login/**")//访问： 无需登录认证权限
                 .antMatchers("/bpmn/**")
                 .antMatchers("/table/**")
                 .antMatchers("/sysMenu/getMenusByRoleId")

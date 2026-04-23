@@ -2,6 +2,7 @@ package com.configuration;
 
 import com.util.RequestUtils;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -23,4 +24,5 @@ public class WebMvcConfig implements WebMvcConfigurer {
         //.resourceChain(true).addTransformer(new SecretImageResourceTransformerSupport());
 
     }
+
 }

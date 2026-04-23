@@ -17,6 +17,8 @@ public class Result implements Serializable {
     @Transient
     private Integer code;
 
+    
+
     /**
      * 消息提示
      */
