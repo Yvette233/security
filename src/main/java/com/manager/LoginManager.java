@@ -1,12 +1,9 @@
 package com.manager;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.dao.SysLoginInfoDao;
 import com.dao.SysRoleUserDao;
 import com.dao.SysUserDao;
 import com.pojo.*;
-import com.tencentMI.GenerateUserSig;
 import com.util.JwtUtils;
 import com.util.RequestUtils;
 import com.util.Result;
@@ -50,8 +47,6 @@ public class LoginManager {
     private PublicManager publicManager;
     @Resource
     private SysPermissionManager sysPermissionManager;
-    @Autowired
-    private GenerateUserSig generateUserSig;
 
     /***********************************登陆时得到token********************************************/
     public SysUser updateSysUserAtLogin(String user, Authentication authentication) {
@@ -79,9 +74,6 @@ public class LoginManager {
                 break;
             }
         }
-
-        userDetails.setUserSig(generateUserSig.generateUserSig(sysUser.getId()).getRight());
-        userDetails.setSdkAppId(generateUserSig.generateUserSig(sysUser.getId()).getLeft());
 
         return userDetails;
     }
