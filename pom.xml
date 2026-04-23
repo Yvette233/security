@@ -158,10 +158,7 @@
             <version>12.2.0.1</version>
         </dependency>
 
-<<<<<<< HEAD
-=======
         <!-- 解决 JAXB 缺失：JDK9+、JDK11、JDK17 通用 -->
->>>>>>> 169ca686dac971da136bcfff96c886507745250d
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
@@ -200,15 +197,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-<<<<<<< HEAD
-                        <source>8</source>
-                        <target>8</target>
-=======
-                        <source>21</source>
-                        <target>21</target>
->>>>>>> 169ca686dac971da136bcfff96c886507745250d
+                        <source>1.8</source>
+                        <target>1.8</target>
                         <encoding>UTF-8</encoding>
-                        <compilerArgs>--enable-preview</compilerArgs>
                     </configuration>
                 </plugin>
                 <!-- ✅ 2️⃣ ProGuard（只处理 classes，关键！） -->
