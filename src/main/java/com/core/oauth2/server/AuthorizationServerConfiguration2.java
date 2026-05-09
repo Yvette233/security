@@ -9,12 +9,14 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.util.Result;
-import oracle.security.crypto.core.RSAPrivateKey;
-import oracle.security.crypto.core.RSAPublicKey;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,9 +34,11 @@ import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationCode;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationProvider;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationCodeRequestAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AuthorizationConsentAuthenticationProvider;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
@@ -51,14 +55,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Configuration
 public class AuthorizationServerConfiguration2 {
 
     public final static Log log = LogFactory.getLog(LoginController.class);
@@ -126,6 +135,10 @@ public class AuthorizationServerConfiguration2 {
                 new OAuth2AuthorizationServerConfigurer();
 
         authorizationServerConfigurer
+                .authorizationEndpoint(authorizationEndpoint -> authorizationEndpoint
+                        // 【核心配置】：接管授权成功后的行为
+                        .authorizationResponseHandler(customAuthorizationResponseHandler())
+                )
                 .tokenEndpoint(tokenEndpoint -> tokenEndpoint
                         // 移除报错的 tokenEndpointUri 方法，改用成功处理器接管返回格式
                         .accessTokenResponseHandler(customTokenResponseHandler())
@@ -141,7 +154,7 @@ public class AuthorizationServerConfiguration2 {
     }
 
     /**
-     * 生产级处理器：将 SAS 原生 Token 封装进项目原有的 Result 类
+     * 处理器将 SAS 原生 Token 封装进项目原有的 Result 类
      */
     private AuthenticationSuccessHandler customTokenResponseHandler() {
         return (request, response, authentication) -> {
@@ -170,14 +183,14 @@ public class AuthorizationServerConfiguration2 {
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("messaging-client")
-                .clientSecret(new BCryptPasswordEncoder().encode("secret"))
+                .clientId("aps_client")
+                //.clientSecret(new BCryptPasswordEncoder().encode("{noop}123456"))
+                .clientSecret(new BCryptPasswordEncoder().encode("123456"))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .redirectUri("http://127.0.0.1:8080/login/oauth2/code/messaging-client-oidc")
-                .redirectUri("http://127.0.0.1:8080/authorized")
+                .redirectUri("http://127.0.0.1:8181/login/oauth2/code/aps_client")
                 .scope(OidcScopes.OPENID)
                 .scope(OidcScopes.PROFILE)
                 .scope("message.read")
@@ -188,12 +201,14 @@ public class AuthorizationServerConfiguration2 {
         return new InMemoryRegisteredClientRepository(registeredClient);
     }
 
-    // 配置数据库查询的 Client
-    @Bean
-    public RegisteredClientRepository registeredClientRepository(@Qualifier("customJdbcTemplate") JdbcTemplate jdbcTemplate) {
 
-        return new JdbcRegisteredClientRepository(jdbcTemplate);
-    }
+
+//    // 配置数据库查询的 Client
+//    @Bean
+//    public RegisteredClientRepository registeredClientRepository(@Qualifier("customJdbcTemplate") JdbcTemplate jdbcTemplate) {
+//
+//        return new JdbcRegisteredClientRepository(jdbcTemplate);
+//    }
 
     // 配置JWT的生成方式
     @Bean
@@ -261,6 +276,36 @@ public class AuthorizationServerConfiguration2 {
                 context.getClaims().claim("authorities", authorities);
             }
         };
+    }
+
+    // 这个处理器的作用是在 SAS 成功生成 Code 之后被调用。我们需要拦截它原本的重定向行为，改为输出你想要的 JSON。
+    private AuthenticationSuccessHandler customAuthorizationResponseHandler() {
+        return (HttpServletRequest request, HttpServletResponse response, Authentication authentication) -> {
+            OAuth2AuthorizationCodeRequestAuthenticationToken authorizationCodeRequestAuthentication =
+                    (OAuth2AuthorizationCodeRequestAuthenticationToken) authentication;
+
+            // 获取 SAS 刚刚生成的 Authorization Code
+            String authorizationCode = authorizationCodeRequestAuthentication.getAuthorizationCode().getTokenValue();
+
+            // 组装你要返回给前端的数据
+            Map<String, String> data = new HashMap<>();
+            data.put("code", authorizationCode);
+            data.put("state", authorizationCodeRequestAuthentication.getState()); // 如果有的话
+
+            // 使用你的 Result 类进行包装
+            Result result = Result.ok(data); // 假设你有一个 Result.ok(data) 的方法
+
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(new ObjectMapper().writeValueAsString(result));
+        };
+    }
+
+    /**
+     * 将 SAS 的授权服务暴露给我们的 Controller 使用
+     */
+    @Bean
+    public OAuth2AuthorizationService authorizationService() {
+        return new InMemoryOAuth2AuthorizationService();
     }
 
 }

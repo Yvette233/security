@@ -5,30 +5,37 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @Order(1)
-public class ResourceServerConfiguration extends WebSecurityConfigurerAdapter {
+public class ResourceServerConfiguration {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    /**
+     * 用 SecurityFilterChain 替代原来的 configure(HttpSecurity http)
+     */
+    @Bean
+    public SecurityFilterChain resourceServerFilterChain(HttpSecurity http) throws Exception {
         http
-                .antMatcher("/login/getUserInfo") // 仅对资源接口启用 JWT 验证
-                .authorizeRequests().anyRequest().authenticated()
+                .antMatcher("/login/getUserInfo") // 仅对该资源接口启用 JWT 验证
+                .authorizeRequests()
+                .anyRequest().authenticated()
                 .and()
+                // 配置 OAuth2 资源服务器
                 .oauth2ResourceServer()
                 .jwt()
                 .jwtAuthenticationConverter(jwtConverter());
+
+        return http.build();
     }
 
     /**
-     * 书中 15.3 节核心：将 JWT 中的 authorities 载荷映射为 Spring 权限
+     * 将 JWT 中的 authorities 载荷映射为 Spring 权限
      */
     private JwtAuthenticationConverter jwtConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
@@ -41,11 +48,9 @@ public class ResourceServerConfiguration extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(){
-        String jwkSetUri = "http://localhost:8080/oauth2/jwks";
+    public JwtDecoder jwtDecoder() {
+
+        String jwkSetUri = "http://localhost:8181/oauth2/jwks";
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-
-
     }
-
 }
